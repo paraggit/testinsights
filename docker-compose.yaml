@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  reportportal_ai:
+    build: .
+    container_name: reportportal_ai
+    environment:
+      - REPORTPORTAL_URL=${REPORTPORTAL_URL}
+      - REPORTPORTAL_API_TOKEN=${REPORTPORTAL_API_TOKEN}
+      - REPORTPORTAL_PROJECT=${REPORTPORTAL_PROJECT}
+      - CHROMA_PERSIST_DIRECTORY=/app/data/chroma_db
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - LOG_FORMAT=${LOG_FORMAT:-json}
+    volumes:
+      - ./data:/app/data
+      - ./.env:/app/.env:ro
+    command: ["poetry", "run", "reportportal_ai", "sync", "status"]
+    
+  # Sync service - runs periodic syncs
+  sync-scheduler:
+    build: .
+    container_name: reportportal_ai-sync
+    environment:
+      - REPORTPORTAL_URL=${REPORTPORTAL_URL}
+      - REPORTPORTAL_API_TOKEN=${REPORTPORTAL_API_TOKEN}
+      - REPORTPORTAL_PROJECT=${REPORTPORTAL_PROJECT}
+      - CHROMA_PERSIST_DIRECTORY=/app/data/chroma_db
+      - SYNC_INTERVAL=${SYNC_INTERVAL:-3600}  # Default: 1 hour
+    volumes:
+      - ./data:/app/data
+      - ./.env:/app/.env:ro
+    command: |
+      sh -c "while true; do
+        echo 'Starting incremental sync...'
+        poetry run reportportal_ai sync run
+        echo 'Sync completed. Sleeping for ${SYNC_INTERVAL} seconds...'
+        sleep ${SYNC_INTERVAL}
+      done"
+    restart: unless-stopped
+
+volumes:
+  data:
