@@ -9,7 +9,7 @@ setup(
     package_dir={"": "src"},
     entry_points={
         "console_scripts": [
-            "reportportal-ai=reportportal_ai.cli:cli",
+            "reportportal-ai=test_insights.cli:cli",
         ],
     },
 )

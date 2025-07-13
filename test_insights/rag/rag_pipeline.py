@@ -1,4 +1,4 @@
-# src/reportportal_ai/llm/rag_pipeline.py
+# src/test_insights/llm/rag_pipeline.py
 """Retrieval Augmented Generation pipeline for ReportPortal queries."""
 
 from typing import Dict, List, Optional, Any
@@ -6,9 +6,9 @@ import json
 
 import structlog
 
-from src.reportportal_ai.data_sync.storage.chromadb_client import ChromaDBClient
-from src.reportportal_ai.llm.providers.base import BaseLLMProvider, Message
-from src.reportportal_ai.llm.query_processor import QueryProcessor
+from test_insights.data_sync.storage.chromadb_client import ChromaDBClient
+from test_insights.llm.providers.base import BaseLLMProvider, Message
+from test_insights.llm.query_processor import QueryProcessor
 
 logger = structlog.get_logger(__name__)
 

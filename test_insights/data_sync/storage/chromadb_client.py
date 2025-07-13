@@ -10,8 +10,8 @@ from chromadb.config import Settings as ChromaSettings
 from chromadb.utils import embedding_functions
 import structlog
 
-from src.reportportal_ai.config.settings import settings
-from src.reportportal_ai.core.exceptions import StorageError
+from test_insights.config.settings import settings
+from test_insights.core.exceptions import StorageError
 
 logger = structlog.get_logger(__name__)
 

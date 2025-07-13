@@ -34,4 +34,4 @@ RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
 USER appuser
 
 # Default command
-CMD ["poetry", "run", "reportportal_ai", "--help"]
+CMD ["poetry", "run", "test_insights", "--help"]

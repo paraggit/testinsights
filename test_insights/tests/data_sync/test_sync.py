@@ -4,10 +4,10 @@ import pytest
 from unittest.mock import Mock, AsyncMock, patch
 from datetime import datetime, timedelta
 
-from src.reportportal_ai.data_sync.sync.orchestrator import SyncOrchestrator
-from src.reportportal_ai.data_sync.sync.strategies import FullSyncStrategy, IncrementalSyncStrategy
-from src.reportportal_ai.data_sync.api.client import PaginatedResponse
-from src.reportportal_ai.data_sync.storage.chromadb_client import ChromaDBClient
+from test_insights.data_sync.sync.orchestrator import SyncOrchestrator
+from test_insights.data_sync.sync.strategies import FullSyncStrategy, IncrementalSyncStrategy
+from test_insights.data_sync.api.client import PaginatedResponse
+from test_insights.data_sync.storage.chromadb_client import ChromaDBClient
 
 
 @pytest.fixture

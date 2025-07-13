@@ -1,4 +1,4 @@
-# src/reportportal_ai/llm/providers/ollama_provider.py
+# src/test_insights/llm/providers/ollama_provider.py
 """Ollama local LLM provider implementation."""
 
 from typing import List, Optional, AsyncIterator
@@ -7,8 +7,8 @@ import json
 import httpx
 import structlog
 
-from src.reportportal_ai.llm.providers.base import BaseLLMProvider, Message, LLMResponse
-from src.reportportal_ai.core.exceptions import ConfigurationError
+from test_insights.llm.providers.base import BaseLLMProvider, Message, LLMResponse
+from test_insights.core.exceptions import ConfigurationError
 
 logger = structlog.get_logger(__name__)
 

@@ -6,11 +6,11 @@ from datetime import datetime, timedelta
 from tqdm.asyncio import tqdm
 import structlog
 
-from src.reportportal_ai.config.settings import settings
-from src.reportportal_ai.core.exceptions import SyncError
-from src.reportportal_ai.data_sync.api.client import ReportPortalAPIClient
-from src.reportportal_ai.data_sync.storage.chromadb_client import ChromaDBClient
-from src.reportportal_ai.data_sync.sync.strategies import SyncStrategy, FullSyncStrategy, IncrementalSyncStrategy
+from test_insights.config.settings import settings
+from test_insights.core.exceptions import SyncError
+from test_insights.data_sync.api.client import ReportPortalAPIClient
+from test_insights.data_sync.storage.chromadb_client import ChromaDBClient
+from test_insights.data_sync.sync.strategies import SyncStrategy, FullSyncStrategy, IncrementalSyncStrategy
 
 logger = structlog.get_logger(__name__)
 

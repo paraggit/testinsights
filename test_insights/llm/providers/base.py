@@ -1,4 +1,4 @@
-# src/reportportal_ai/llm/providers/base.py
+# src/test_insights/llm/providers/base.py
 """Base class for LLM providers."""
 
 from abc import ABC, abstractmethod

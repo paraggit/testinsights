@@ -4,9 +4,9 @@ import asyncio
 import os
 from dotenv import load_dotenv
 
-from src.reportportal_ai.data_sync.sync.orchestrator import SyncOrchestrator
-from src.reportportal_ai.data_sync.storage.chromadb_client import ChromaDBClient
-from src.reportportal_ai.core.logging import setup_logging
+from test_insights.data_sync.sync.orchestrator import SyncOrchestrator
+from test_insights.data_sync.storage.chromadb_client import ChromaDBClient
+from test_insights.core.logging import setup_logging
 
 # Load environment variables
 load_dotenv()

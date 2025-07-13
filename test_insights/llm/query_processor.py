@@ -1,4 +1,4 @@
-# src/reportportal_ai/llm/query_processor.py
+# src/test_insights/llm/query_processor.py
 """Natural language query processor."""
 
 import re
@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 
 import structlog
 
-from src.reportportal_ai.llm.providers.base import Message
+from test_insights.llm.providers.base import Message
 
 logger = structlog.get_logger(__name__)
 

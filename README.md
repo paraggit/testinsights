@@ -2,13 +2,13 @@
 
 ## Project Structure
 
-reportportal_ai-assistant/
+test_insights-assistant/
 ├── pyproject.toml
 ├── README.md
 ├── .env.example
 ├── .gitignore
 ├── src/
-│   └── reportportal_ai/
+│   └── test_insights/
 │       ├── __init__.py
 │       ├── config/
 │       │   ├── __init__.py
@@ -75,8 +75,8 @@ An AI-powered assistant for ReportPortal that syncs data to a vector database (C
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/reportportal_ai-assistant.git
-cd reportportal_ai-assistant
+git clone https://github.com/yourusername/test_insights-assistant.git
+cd test_insights-assistant
 ```
 
 2. Install dependencies using Poetry:
@@ -92,7 +92,7 @@ cp .env.example .env
 
 4. Initialize configuration (optional):
 ```bash
-poetry run reportportal_ai config init
+poetry run test_insights config init
 ```
 
 ## Configuration
@@ -116,51 +116,51 @@ The application provides a CLI with several commands:
 
 **Full Sync** - Replace all data:
 ```bash
-poetry run reportportal_ai sync run --full --project OCS   
+poetry run test_insights sync run --full --project OCS   
 ```
 
 **Incremental Sync** - Update only changed data (default):
 ```bash
-poetry run reportportal_ai sync run --project OCS   
+poetry run test_insights sync run --project OCS   
 ```
 
 **Sync Specific Projects**:
 ```bash
-poetry run reportportal_ai sync run -p project1 -p project2
+poetry run test_insights sync run -p project1 -p project2
 ```
 
 **Sync Specific Entity Types**:
 ```bash
-poetry run reportportal_ai sync run -e launch -e test_item
+poetry run test_insights sync run -e launch -e test_item
 ```
 
 **Check Sync Status**:
 ```bash
-poetry run reportportal_ai sync status
+poetry run test_insights sync status
 ```
 
 #### Storage Commands
 
 **Search Vector Database**:
 ```bash
-poetry run reportportal_ai storage search "failed test with timeout error"
+poetry run test_insights storage search "failed test with timeout error"
 ```
 
 **Search with Filters**:
 ```bash
-poetry run reportportal_ai storage search "error" -e log -e test_item -n 20
+poetry run test_insights storage search "error" -e log -e test_item -n 20
 ```
 
 **Clear All Data**:
 ```bash
-poetry run reportportal_ai storage clear
+poetry run test_insights storage clear
 ```
 
 #### Configuration Commands
 
 **Show Current Configuration**:
 ```bash
-poetry run reportportal_ai config show
+poetry run test_insights config show
 ```
 
 ### Python API
@@ -169,7 +169,7 @@ You can also use the synchronization features programmatically:
 
 ```python
 import asyncio
-from reportportal_ai.data_sync.sync.orchestrator import SyncOrchestrator
+from test_insights.data_sync.sync.orchestrator import SyncOrchestrator
 
 async def main():
     orchestrator = SyncOrchestrator()
@@ -191,7 +191,7 @@ asyncio.run(main())
 The project follows a modular architecture designed for extensibility:
 
 ```
-src/reportportal_ai/
+src/test_insights/
 ├── config/          # Configuration management
 ├── core/            # Core utilities and exceptions
 ├── data_sync/       # Data synchronization module
@@ -310,7 +310,7 @@ OPENAI_API_KEY=your-api-key-here
 LLM_PROVIDER=openai
 
 # Or use CLI
-poetry run reportportal_ai query configure --openai-key YOUR_KEY
+poetry run test_insights query configure --openai-key YOUR_KEY
 ```
 
 #### Anthropic (Claude)
@@ -320,7 +320,7 @@ ANTHROPIC_API_KEY=your-api-key-here
 LLM_PROVIDER=anthropic
 
 # Or use CLI
-poetry run reportportal_ai query configure --anthropic-key YOUR_KEY
+poetry run test_insights query configure --anthropic-key YOUR_KEY
 ```
 
 #### Ollama (Local LLMs)
@@ -343,30 +343,30 @@ OLLAMA_MODEL=llama2
 Before querying, make sure your ReportPortal data is synced:
 
 ```bash
-poetry run reportportal_ai sync run --project YOUR_PROJECT_NAME
+poetry run test_insights sync run --project YOUR_PROJECT_NAME
 ```
 
 ### 3. Start Asking Questions
 
 ```bash
 # Basic query
-poetry run reportportal_ai query ask "What tests failed today?"
+poetry run test_insights query ask "What tests failed today?"
 
 # With sources
-poetry run reportportal_ai query ask "Find timeout errors in API tests" --show-sources
+poetry run test_insights query ask "Find timeout errors in API tests" --show-sources
 
 # Streaming response
-poetry run reportportal_ai query ask "Analyze test failure trends this week" --stream
+poetry run test_insights query ask "Analyze test failure trends this week" --stream
 
 # Use specific provider
-poetry run reportportal_ai query ask "Why are login tests failing?" --provider anthropic
+poetry run test_insights query ask "Why are login tests failing?" --provider anthropic
 ```
 
 ## Example Queries
 
 View example queries:
 ```bash
-poetry run reportportal_ai query examples
+poetry run test_insights query examples
 ```
 
 Common query patterns:
@@ -396,8 +396,8 @@ Common query patterns:
 
 ```python
 import asyncio
-from reportportal_ai.llm.providers.openai_provider import OpenAIProvider
-from reportportal_ai.llm.rag_pipeline import RAGPipeline
+from test_insights.llm.providers.openai_provider import OpenAIProvider
+from test_insights.llm.rag_pipeline import RAGPipeline
 
 async def query_tests():
     # Initialize provider
@@ -498,7 +498,7 @@ The system automatically analyzes queries to understand:
 ## Troubleshooting
 
 ### No Results Found
-- Ensure data is synced: `poetry run reportportal_ai sync status`
+- Ensure data is synced: `poetry run test_insights sync status`
 - Check if the time range in your query matches available data
 - Try broader search terms
 

@@ -1,4 +1,4 @@
-# src/reportportal_ai/llm/providers/openai_provider.py
+# src/test_insights/llm/providers/openai_provider.py
 """OpenAI LLM provider implementation."""
 
 import os
@@ -8,8 +8,8 @@ import openai
 from openai import AsyncOpenAI
 import structlog
 
-from src.reportportal_ai.llm.providers.base import BaseLLMProvider, Message, LLMResponse
-from src.reportportal_ai.core.exceptions import ConfigurationError
+from test_insights.llm.providers.base import BaseLLMProvider, Message, LLMResponse
+from test_insights.core.exceptions import ConfigurationError
 
 logger = structlog.get_logger(__name__)
 

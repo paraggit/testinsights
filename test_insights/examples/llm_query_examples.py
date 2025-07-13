@@ -5,11 +5,11 @@ import asyncio
 import os
 from dotenv import load_dotenv
 
-from src.reportportal_ai.llm.providers.openai_provider import OpenAIProvider
-from src.reportportal_ai.llm.providers.anthropic_provider import AnthropicProvider
-from src.reportportal_ai.llm.providers.ollama_provider import OllamaProvider
-from src.reportportal_ai.rag.rag_pipeline import RAGPipeline
-from src.reportportal_ai.core.logging import setup_logging
+from test_insights.llm.providers.openai_provider import OpenAIProvider
+from test_insights.llm.providers.anthropic_provider import AnthropicProvider
+from test_insights.llm.providers.ollama_provider import OllamaProvider
+from test_insights.rag.rag_pipeline import RAGPipeline
+from test_insights.core.logging import setup_logging
 
 # Load environment variables
 load_dotenv()
@@ -233,7 +233,7 @@ async def main():
         
         # Make sure data is synced first
         print("Note: Make sure you have synced data using:")
-        print("  poetry run reportportal_ai sync run --project YOUR_PROJECT\n")
+        print("  poetry run test_insights sync run --project YOUR_PROJECT\n")
         
         # Run examples
         await example_basic_query()

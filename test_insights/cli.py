@@ -10,10 +10,10 @@ from rich.console import Console
 from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from src.reportportal_ai.config.settings import settings
-from src.reportportal_ai.data_sync.sync.orchestrator import SyncOrchestrator
-from src.reportportal_ai.data_sync.storage.chromadb_client import ChromaDBClient
-from src.reportportal_ai.core.logging import setup_logging
+from test_insights.config.settings import settings
+from test_insights.data_sync.sync.orchestrator import SyncOrchestrator
+from test_insights.data_sync.storage.chromadb_client import ChromaDBClient
+from test_insights.core.logging import setup_logging
 from pathlib import Path
 
 # Setup console for rich output
@@ -359,9 +359,9 @@ def init():
         f.write("\n")
     
     console.print("\n[bold green]Configuration saved to .env file![/bold green]")
-    console.print("You can now run 'reportportal_ai sync run' to start synchronization.")
+    console.print("You can now run 'test_insights sync run' to start synchronization.")
 
-# Add this to src/reportportal_ai/cli.py after the existing commands
+# Add this to src/test_insights/cli.py after the existing commands
 
 @cli.group()
 def query():
@@ -411,21 +411,21 @@ def ask(
         
         try:
             if provider_name == "openai":
-                from src.reportportal_ai.llm.providers.openai_provider import OpenAIProvider
+                from test_insights.llm.providers.openai_provider import OpenAIProvider
                 llm = OpenAIProvider(
                     model=model or settings.openai_model,
                     temperature=settings.llm_temperature,
                     max_tokens=settings.llm_max_tokens,
                 )
             elif provider_name == "anthropic":
-                from src.reportportal_ai.llm.providers.anthropic_provider import AnthropicProvider
+                from test_insights.llm.providers.anthropic_provider import AnthropicProvider
                 llm = AnthropicProvider(
                     model=model or settings.anthropic_model,
                     temperature=settings.llm_temperature,
                     max_tokens=settings.llm_max_tokens,
                 )
             elif provider_name == "ollama":
-                from src.reportportal_ai.llm.providers.ollama_provider import OllamaProvider
+                from test_insights.llm.providers.ollama_provider import OllamaProvider
                 llm = OllamaProvider(
                     base_url=settings.ollama_base_url,
                     model=model or settings.ollama_model,
@@ -440,7 +440,7 @@ def ask(
             raise click.ClickException(str(e))
         
         # Initialize RAG pipeline
-        from src.reportportal_ai.rag.rag_pipeline import RAGPipeline
+        from test_insights.rag.rag_pipeline import RAGPipeline
         rag = RAGPipeline(llm)
         
         console.print(f"[bold blue]Processing query:[/bold blue] {question}\n")
@@ -510,7 +510,7 @@ def ask(
     if provider == "ollama":
         # For Ollama, we need to handle the async client properly
         async def run_with_ollama():
-            from src.reportportal_ai.llm.providers.ollama_provider import OllamaProvider
+            from test_insights.llm.providers.ollama_provider import OllamaProvider
             llm = OllamaProvider(
                 base_url=settings.ollama_base_url,
                 model=model or settings.ollama_model,
@@ -518,7 +518,7 @@ def ask(
                 max_tokens=settings.llm_max_tokens,
             )
             async with llm:
-                from src.reportportal_ai.rag.rag_pipeline import RAGPipeline
+                from test_insights.rag.rag_pipeline import RAGPipeline
                 rag = RAGPipeline(llm)
                 
                 console.print(f"[bold blue]Processing query:[/bold blue] {question}\n")
@@ -717,21 +717,21 @@ def ask(
         
         try:
             if provider_name == "openai":
-                from src.reportportal_ai.llm.providers.openai_provider import OpenAIProvider
+                from test_insights.llm.providers.openai_provider import OpenAIProvider
                 llm = OpenAIProvider(
                     model=model or settings.openai_model,
                     temperature=settings.llm_temperature,
                     max_tokens=settings.llm_max_tokens,
                 )
             elif provider_name == "anthropic":
-                from src.reportportal_ai.llm.providers.anthropic_provider import AnthropicProvider
+                from test_insights.llm.providers.anthropic_provider import AnthropicProvider
                 llm = AnthropicProvider(
                     model=model or settings.anthropic_model,
                     temperature=settings.llm_temperature,
                     max_tokens=settings.llm_max_tokens,
                 )
             elif provider_name == "ollama":
-                from src.reportportal_ai.llm.providers.ollama_provider import OllamaProvider
+                from test_insights.llm.providers.ollama_provider import OllamaProvider
                 llm = OllamaProvider(
                     base_url=settings.ollama_base_url,
                     model=model or settings.ollama_model,
@@ -746,7 +746,7 @@ def ask(
             raise click.ClickException(str(e))
         
         # Initialize RAG pipeline
-        from src.reportportal_ai.rag.rag_pipeline import RAGPipeline
+        from test_insights.rag.rag_pipeline import RAGPipeline
         rag = RAGPipeline(llm)
         
         console.print(f"[bold blue]Processing query:[/bold blue] {question}\n")
@@ -816,7 +816,7 @@ def ask(
     if provider == "ollama":
         # For Ollama, we need to handle the async client properly
         async def run_with_ollama():
-            from src.reportportal_ai.llm.providers.ollama_provider import OllamaProvider
+            from test_insights.llm.providers.ollama_provider import OllamaProvider
             llm = OllamaProvider(
                 base_url=settings.ollama_base_url,
                 model=model or settings.ollama_model,
@@ -824,7 +824,7 @@ def ask(
                 max_tokens=settings.llm_max_tokens,
             )
             async with llm:
-                from src.reportportal_ai.rag.rag_pipeline import RAGPipeline
+                from test_insights.rag.rag_pipeline import RAGPipeline
                 rag = RAGPipeline(llm)
                 
                 console.print(f"[bold blue]Processing query:[/bold blue] {question}\n")

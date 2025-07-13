@@ -1,4 +1,4 @@
-# src/reportportal_ai/llm/providers/__init__.py
+# src/test_insights/llm/providers/__init__.py
 """LLM provider implementations."""
 
 __all__ = [

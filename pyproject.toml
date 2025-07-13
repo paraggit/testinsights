@@ -1,10 +1,11 @@
 [tool.poetry]
-name = "reportportal-ai-assistant"
+name = "Test Analytics Over ReportPortal"
 version = "0.1.0"
 description = "AI-powered assistant for ReportPortal test analytics"
-authors = ["Your Name <you@example.com>"]
+authors = ["Parag Kamble <kamble.parag@gmail.com>"]
 readme = "README.md"
-packages = [{include = "reportportal_ai", from = "src"}]
+# packages = [{include = "test_insights", from = "src"}]
+packages = [{include = "test_insights"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -32,7 +33,7 @@ mypy = "^1.8.0"
 pre-commit = "^3.6.0"
 
 [tool.poetry.scripts]
-reportportal_ai = "reportportal_ai.cli:cli"
+test_insights = "test_insights.cli:cli"
 
 [build-system]
 requires = ["poetry-core"]
