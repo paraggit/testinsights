@@ -43,6 +43,26 @@ class Settings(BaseSettings):
     enable_incremental_sync: bool = True
     enable_full_sync: bool = True
     
+    # LLM settings
+    llm_provider: str = "ollama"  # openai, anthropic, or ollama
+    llm_model: Optional[str] = None  # Auto-detected based on provider
+    llm_temperature: float = 0.7
+    llm_max_tokens: int = 2000
+    
+    # Provider-specific settings
+    openai_api_key: Optional[str] = None
+    openai_model: str = "gpt-4-turbo-preview"
+    
+    anthropic_api_key: Optional[str] = None
+    anthropic_model: str = "claude-3-opus-20240229"
+    
+    ollama_base_url: str = "http://localhost:11434"
+    ollama_model: str = "llama3.3:latest"
+    
+    # RAG settings
+    rag_n_results: int = 20  # Number of documents to retrieve
+    rag_include_raw_results: bool = False
+    
     @property
     def reportportal_base_url(self) -> str:
         """Get the base URL for ReportPortal API."""

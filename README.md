@@ -116,12 +116,12 @@ The application provides a CLI with several commands:
 
 **Full Sync** - Replace all data:
 ```bash
-poetry run reportportal_ai sync run --full
+poetry run reportportal_ai sync run --full --project OCS   
 ```
 
 **Incremental Sync** - Update only changed data (default):
 ```bash
-poetry run reportportal_ai sync run
+poetry run reportportal_ai sync run --project OCS   
 ```
 
 **Sync Specific Projects**:
@@ -282,3 +282,244 @@ For issues and questions:
 - Create an issue in the GitHub repository
 - Check existing issues for solutions
 - Refer to ReportPortal documentation for API details
+
+
+# LLM Integration for ReportPortal AI Assistant
+
+The LLM integration enables natural language querying of your ReportPortal test data using advanced language models. It combines vector search with AI-powered analysis to provide insights about test failures, trends, and patterns.
+
+## Features
+
+- **Natural Language Queries**: Ask questions in plain English about your test data
+- **Multiple LLM Providers**: Support for OpenAI, Anthropic Claude, and local models via Ollama
+- **Smart Query Understanding**: Automatically detects intent, time ranges, and entity types
+- **Metrics Calculation**: Automatically calculates success rates, failure rates, and other metrics
+- **Source Attribution**: See which test data was used to generate responses
+- **Streaming Responses**: Real-time response streaming for better user experience
+
+## Quick Start
+
+### 1. Configure LLM Provider
+
+Choose and configure one of the supported providers:
+
+#### OpenAI (GPT-4)
+```bash
+# Add to .env file
+OPENAI_API_KEY=your-api-key-here
+LLM_PROVIDER=openai
+
+# Or use CLI
+poetry run reportportal_ai query configure --openai-key YOUR_KEY
+```
+
+#### Anthropic (Claude)
+```bash
+# Add to .env file
+ANTHROPIC_API_KEY=your-api-key-here
+LLM_PROVIDER=anthropic
+
+# Or use CLI
+poetry run reportportal_ai query configure --anthropic-key YOUR_KEY
+```
+
+#### Ollama (Local LLMs)
+```bash
+# Install and start Ollama
+brew install ollama  # macOS
+ollama serve
+
+# Pull a model
+ollama pull llama2
+
+# Configure in .env
+LLM_PROVIDER=ollama
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=llama2
+```
+
+### 2. Sync Your Data
+
+Before querying, make sure your ReportPortal data is synced:
+
+```bash
+poetry run reportportal_ai sync run --project YOUR_PROJECT_NAME
+```
+
+### 3. Start Asking Questions
+
+```bash
+# Basic query
+poetry run reportportal_ai query ask "What tests failed today?"
+
+# With sources
+poetry run reportportal_ai query ask "Find timeout errors in API tests" --show-sources
+
+# Streaming response
+poetry run reportportal_ai query ask "Analyze test failure trends this week" --stream
+
+# Use specific provider
+poetry run reportportal_ai query ask "Why are login tests failing?" --provider anthropic
+```
+
+## Example Queries
+
+View example queries:
+```bash
+poetry run reportportal_ai query examples
+```
+
+Common query patterns:
+
+### Finding Failures
+- "Show me all failed tests from the last 24 hours"
+- "What tests failed with timeout errors?"
+- "Find broken tests in the checkout module"
+
+### Root Cause Analysis
+- "Why did the login tests fail yesterday?"
+- "What's causing the API test failures?"
+- "Analyze the error patterns in failed tests"
+
+### Trends and Metrics
+- "What's the test failure trend over the last week?"
+- "Calculate the success rate for API tests"
+- "How many tests passed vs failed today?"
+
+### Comparisons
+- "Compare test results between this week and last week"
+- "What's the difference in failure rates between environments?"
+
+## Advanced Usage
+
+### Python API
+
+```python
+import asyncio
+from reportportal_ai.llm.providers.openai_provider import OpenAIProvider
+from reportportal_ai.llm.rag_pipeline import RAGPipeline
+
+async def query_tests():
+    # Initialize provider
+    llm = OpenAIProvider(model="gpt-4-turbo-preview")
+    
+    # Create RAG pipeline
+    rag = RAGPipeline(llm)
+    
+    # Query with options
+    result = await rag.query(
+        "What are the most common test failures?",
+        n_results=30,  # Retrieve more documents
+        include_raw_results=True  # Include source documents
+    )
+    
+    print(result['response'])
+    print(f"Based on {len(result['search_results'])} documents")
+
+asyncio.run(query_tests())
+```
+
+### Streaming Responses
+
+```python
+async def stream_response():
+    llm = OpenAIProvider()
+    rag = RAGPipeline(llm)
+    
+    result = await rag.query(
+        "Provide a detailed analysis of test failures",
+        stream=True
+    )
+    
+    async for chunk in result['response']:
+        print(chunk, end='', flush=True)
+```
+
+### Query with Feedback
+
+```python
+async def refine_query():
+    llm = OpenAIProvider()
+    rag = RAGPipeline(llm)
+    
+    # Initial query
+    result = await rag.query("What tests are failing?")
+    
+    # Refine with feedback
+    refined = await rag.query_with_feedback(
+        query="What tests are failing?",
+        previous_response=result['response'],
+        feedback="I need more details about the error messages"
+    )
+    
+    print(refined['response'])
+```
+
+## Configuration Options
+
+### Environment Variables
+
+```bash
+# LLM Provider Selection
+LLM_PROVIDER=openai  # openai, anthropic, or ollama
+
+# Model Configuration
+LLM_TEMPERATURE=0.7  # 0.0-1.0, higher = more creative
+LLM_MAX_TOKENS=2000  # Maximum response length
+
+# RAG Configuration
+RAG_N_RESULTS=20  # Number of documents to retrieve
+RAG_INCLUDE_RAW_RESULTS=false  # Include source docs in response
+
+# Provider-Specific Settings
+OPENAI_MODEL=gpt-4-turbo-preview
+ANTHROPIC_MODEL=claude-3-opus-20240229
+OLLAMA_MODEL=llama2
+```
+
+### Query Analysis
+
+The system automatically analyzes queries to understand:
+
+- **Intent**: count, analysis, trend, comparison, or search
+- **Time Range**: "last 7 days", "yesterday", "this week"
+- **Status Filter**: failed, passed, broken, skipped
+- **Entity Types**: launches, tests, logs
+- **Keywords**: Important terms for search
+
+## Best Practices
+
+1. **Be Specific**: Include test names, error messages, or time ranges
+2. **Use Natural Language**: Ask questions as you would to a colleague
+3. **Iterate**: Use feedback to refine responses
+4. **Check Sources**: Use `--show-sources` to verify information
+5. **Sync Regularly**: Keep data up-to-date with incremental syncs
+
+## Troubleshooting
+
+### No Results Found
+- Ensure data is synced: `poetry run reportportal_ai sync status`
+- Check if the time range in your query matches available data
+- Try broader search terms
+
+### API Key Issues
+- Verify API keys are set correctly in `.env`
+- Check key permissions and quotas
+- For OpenAI: Ensure GPT-4 access is enabled
+
+### Ollama Connection Failed
+- Check Ollama is running: `ollama serve`
+- Verify the URL matches your setup
+- Ensure the model is downloaded: `ollama pull llama2`
+
+### Slow Responses
+- Reduce `RAG_N_RESULTS` for faster retrieval
+- Use a faster model (e.g., gpt-3.5-turbo)
+- Enable streaming for perceived performance
+
+## Security Considerations
+
+- API keys are stored locally in `.env` file
+- No data is sent to LLM providers except the query and retrieved context
+- Use Ollama for completely local processing
+- Sensitive test data remains in your local vector database

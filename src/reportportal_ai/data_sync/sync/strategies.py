@@ -44,6 +44,10 @@ class FullSyncStrategy(SyncStrategy):
     Syncs all entities regardless of their state.
     """
     
+    def __init__(self, api_client, storage_client):
+        self.api_client = api_client
+        self.storage_client = storage_client
+    
     def filter_entities(
         self,
         entities: List[Dict[str, Any]],

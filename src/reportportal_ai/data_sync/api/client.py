@@ -61,6 +61,7 @@ class ReportPortalAPIClient:
                 "Accept": "application/json",
             },
             timeout=self.timeout,
+            verify=False,  # Disable SSL verification for testing purposes
         )
         return self
     

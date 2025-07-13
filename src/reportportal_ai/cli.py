@@ -10,10 +10,11 @@ from rich.console import Console
 from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
 
-from .config.settings import settings
-from .data_sync.sync.orchestrator import SyncOrchestrator
-from .data_sync.storage.chromadb_client import ChromaDBClient
-from .core.logging import setup_logging
+from src.reportportal_ai.config.settings import settings
+from src.reportportal_ai.data_sync.sync.orchestrator import SyncOrchestrator
+from src.reportportal_ai.data_sync.storage.chromadb_client import ChromaDBClient
+from src.reportportal_ai.core.logging import setup_logging
+from pathlib import Path
 
 # Setup console for rich output
 console = Console()
@@ -360,6 +361,619 @@ def init():
     console.print("\n[bold green]Configuration saved to .env file![/bold green]")
     console.print("You can now run 'reportportal_ai sync run' to start synchronization.")
 
+# Add this to src/reportportal_ai/cli.py after the existing commands
+
+@cli.group()
+def query():
+    """Natural language query commands."""
+    pass
+
+
+@query.command()
+@click.argument("question")
+@click.option(
+    "--provider",
+    type=click.Choice(["openai", "anthropic", "ollama"]),
+    default=None,
+    help="LLM provider to use (defaults to config)",
+)
+@click.option(
+    "--model",
+    help="Model to use (defaults to provider's default)",
+)
+@click.option(
+    "--stream",
+    is_flag=True,
+    help="Stream the response",
+)
+@click.option(
+    "--show-sources",
+    is_flag=True,
+    help="Show source documents used for the answer",
+)
+@click.option(
+    "--n-results",
+    default=20,
+    help="Number of documents to retrieve",
+)
+def ask(
+    question: str,
+    provider: Optional[str],
+    model: Optional[str],
+    stream: bool,
+    show_sources: bool,
+    n_results: int,
+):
+    """Ask a natural language question about your test data."""
+    async def run_query():
+        # Initialize LLM provider
+        provider_name = provider or settings.llm_provider
+        
+        try:
+            if provider_name == "openai":
+                from src.reportportal_ai.llm.providers.openai_provider import OpenAIProvider
+                llm = OpenAIProvider(
+                    model=model or settings.openai_model,
+                    temperature=settings.llm_temperature,
+                    max_tokens=settings.llm_max_tokens,
+                )
+            elif provider_name == "anthropic":
+                from src.reportportal_ai.llm.providers.anthropic_provider import AnthropicProvider
+                llm = AnthropicProvider(
+                    model=model or settings.anthropic_model,
+                    temperature=settings.llm_temperature,
+                    max_tokens=settings.llm_max_tokens,
+                )
+            elif provider_name == "ollama":
+                from src.reportportal_ai.llm.providers.ollama_provider import OllamaProvider
+                llm = OllamaProvider(
+                    base_url=settings.ollama_base_url,
+                    model=model or settings.ollama_model,
+                    temperature=settings.llm_temperature,
+                    max_tokens=settings.llm_max_tokens,
+                )
+            else:
+                raise click.ClickException(f"Unknown provider: {provider_name}")
+                
+        except Exception as e:
+            console.print(f"[bold red]Failed to initialize LLM provider: {e}[/bold red]")
+            raise click.ClickException(str(e))
+        
+        # Initialize RAG pipeline
+        from src.reportportal_ai.rag.rag_pipeline import RAGPipeline
+        rag = RAGPipeline(llm)
+        
+        console.print(f"[bold blue]Processing query:[/bold blue] {question}\n")
+        
+        # Run query
+        with console.status("Searching and analyzing..."):
+            try:
+                result = await rag.query(
+                    question,
+                    n_results=n_results,
+                    include_raw_results=show_sources,
+                    stream=stream,
+                )
+            except Exception as e:
+                console.print(f"[bold red]Query failed: {e}[/bold red]")
+                raise click.ClickException(str(e))
+        
+        # Display response
+        if stream:
+            console.print("[bold green]Response:[/bold green]\n")
+            async for chunk in result["response"]:
+                console.print(chunk, end="")
+            console.print("\n")
+        else:
+            console.print("[bold green]Response:[/bold green]")
+            console.print(result["response"])
+        
+        # Show analysis info
+        if result.get("analysis"):
+            console.print(f"\n[dim]Intent: {result['analysis']['intent']}[/dim]")
+            console.print(f"[dim]Entity types: {', '.join(result['analysis']['entity_types'])}[/dim]")
+        
+        # Show metrics if calculated
+        if result.get("metrics"):
+            console.print("\n[bold]Metrics:[/bold]")
+            table = Table()
+            table.add_column("Metric", style="cyan")
+            table.add_column("Value", style="green")
+            
+            metrics = result["metrics"]
+            if "failure_rate" in metrics:
+                table.add_row("Failure Rate", f"{metrics['failure_rate']:.1f}%")
+            if "success_rate" in metrics:
+                table.add_row("Success Rate", f"{metrics['success_rate']:.1f}%")
+            
+            console.print(table)
+        
+        # Show sources if requested
+        if show_sources and result.get("search_results"):
+            console.print(f"\n[bold]Sources ({len(result['search_results'])} documents):[/bold]")
+            for i, doc in enumerate(result["search_results"][:5], 1):
+                metadata = doc["metadata"]
+                console.print(f"\n[cyan]{i}. {metadata.get('entity_type', 'Unknown')}[/cyan]")
+                console.print(f"   Distance: {doc['distance']:.4f}")
+                console.print(f"   Preview: {doc['document'][:150]}...")
+        
+        # Show usage if available
+        if result.get("usage"):
+            usage = result["usage"]
+            console.print(
+                f"\n[dim]Tokens used: {usage.get('total_tokens', 'N/A')} "
+                f"(prompt: {usage.get('prompt_tokens', 'N/A')}, "
+                f"completion: {usage.get('completion_tokens', 'N/A')})[/dim]"
+            )
+    
+    # Run async function
+    if provider == "ollama":
+        # For Ollama, we need to handle the async client properly
+        async def run_with_ollama():
+            from src.reportportal_ai.llm.providers.ollama_provider import OllamaProvider
+            llm = OllamaProvider(
+                base_url=settings.ollama_base_url,
+                model=model or settings.ollama_model,
+                temperature=settings.llm_temperature,
+                max_tokens=settings.llm_max_tokens,
+            )
+            async with llm:
+                from src.reportportal_ai.rag.rag_pipeline import RAGPipeline
+                rag = RAGPipeline(llm)
+                
+                console.print(f"[bold blue]Processing query:[/bold blue] {question}\n")
+                
+                with console.status("Searching and analyzing..."):
+                    try:
+                        result = await rag.query(
+                            question,
+                            n_results=n_results,
+                            include_raw_results=show_sources,
+                            stream=stream,
+                        )
+                    except Exception as e:
+                        console.print(f"[bold red]Query failed: {e}[/bold red]")
+                        raise click.ClickException(str(e))
+                
+                # Display response (same as above)
+                if stream:
+                    console.print("[bold green]Response:[/bold green]\n")
+                    async for chunk in result["response"]:
+                        console.print(chunk, end="")
+                    console.print("\n")
+                else:
+                    console.print("[bold green]Response:[/bold green]")
+                    console.print(result["response"])
+                
+                # Show additional info (same as above)
+                if result.get("analysis"):
+                    console.print(f"\n[dim]Intent: {result['analysis']['intent']}[/dim]")
+                    console.print(f"[dim]Entity types: {', '.join(result['analysis']['entity_types'])}[/dim]")
+        
+        asyncio.run(run_with_ollama())
+    else:
+        asyncio.run(run_query())
+
+
+@query.command()
+def examples():
+    """Show example queries you can ask."""
+    examples = [
+        ("Find failed tests", "Show me all failed tests from the last 24 hours"),
+        ("Root cause analysis", "Why did the login tests fail yesterday?"),
+        ("Trends", "What's the test failure trend over the last week?"),
+        ("Specific errors", "Find tests that failed with timeout errors"),
+        ("Metrics", "What's the success rate for API tests this month?"),
+        ("Comparisons", "Compare test results between this week and last week"),
+        ("Test history", "Show me the history of the checkout flow tests"),
+        ("Error patterns", "What are the most common error messages in failed tests?"),
+        ("Performance", "Which tests are taking the longest to run?"),
+        ("Flaky tests", "Identify tests that pass and fail intermittently"),
+    ]
+    
+    console.print("[bold]Example Queries:[/bold]\n")
+    
+    table = Table()
+    table.add_column("Category", style="cyan")
+    table.add_column("Example Query", style="green")
+    
+    for category, example in examples:
+        table.add_row(category, example)
+    
+    console.print(table)
+    
+    console.print("\n[dim]Tips:[/dim]")
+    console.print("• Be specific about time periods (e.g., 'last 7 days', 'yesterday')")
+    console.print("• Mention test names or error messages for targeted results")
+    console.print("• Ask for metrics like success rate, failure rate, or counts")
+    console.print("• Use --show-sources to see which documents were used")
+
+
+@query.command()
+@click.option(
+    "--openai-key",
+    help="OpenAI API key",
+)
+@click.option(
+    "--anthropic-key", 
+    help="Anthropic API key",
+)
+@click.option(
+    "--ollama-url",
+    help="Ollama server URL",
+)
+def configure(openai_key: Optional[str], anthropic_key: Optional[str], ollama_url: Optional[str]):
+    """Configure LLM providers."""
+    console.print("[bold]LLM Configuration[/bold]\n")
+    
+    updates = []
+    
+    if openai_key:
+        updates.append(f"OPENAI_API_KEY={openai_key}")
+        console.print("✓ OpenAI API key set")
+    
+    if anthropic_key:
+        updates.append(f"ANTHROPIC_API_KEY={anthropic_key}")
+        console.print("✓ Anthropic API key set")
+    
+    if ollama_url:
+        updates.append(f"OLLAMA_BASE_URL={ollama_url}")
+        console.print(f"✓ Ollama URL set to {ollama_url}")
+    
+    if updates:
+        # Update .env file
+        env_path = Path(".env")
+        
+        if env_path.exists():
+            with open(env_path, "a") as f:
+                f.write("\n# LLM Configuration\n")
+                for update in updates:
+                    f.write(f"{update}\n")
+        else:
+            with open(env_path, "w") as f:
+                f.write("# LLM Configuration\n")
+                for update in updates:
+                    f.write(f"{update}\n")
+        
+        console.print("\n[bold green]Configuration saved to .env file[/bold green]")
+    else:
+        # Interactive configuration
+        console.print("Choose your LLM provider:\n")
+        console.print("1. OpenAI (GPT-4)")
+        console.print("2. Anthropic (Claude)")
+        console.print("3. Ollama (Local LLMs)")
+        
+        choice = click.prompt("Enter choice (1-3)", type=int)
+        
+        if choice == 1:
+            key = click.prompt("Enter OpenAI API key", hide_input=True)
+            with open(".env", "a") as f:
+                f.write(f"\nOPENAI_API_KEY={key}\n")
+                f.write("LLM_PROVIDER=openai\n")
+            console.print("[bold green]OpenAI configured![/bold green]")
+            
+        elif choice == 2:
+            key = click.prompt("Enter Anthropic API key", hide_input=True)
+            with open(".env", "a") as f:
+                f.write(f"\nANTHROPIC_API_KEY={key}\n")
+                f.write("LLM_PROVIDER=anthropic\n")
+            console.print("[bold green]Anthropic configured![/bold green]")
+            
+        elif choice == 3:
+            url = click.prompt("Enter Ollama URL", default="http://localhost:11434")
+            model = click.prompt("Enter model name", default="llama2")
+            with open(".env", "a") as f:
+                f.write(f"\nOLLAMA_BASE_URL={url}\n")
+                f.write(f"OLLAMA_MODEL={model}\n")
+                f.write("LLM_PROVIDER=ollama\n")
+            console.print("[bold green]Ollama configured![/bold green]")
+            console.print("\nMake sure Ollama is running: ollama serve")
+            
+@cli.group()
+def query():
+    """Natural language query commands."""
+    pass
+
+
+@query.command()
+@click.argument("question")
+@click.option(
+    "--provider",
+    type=click.Choice(["openai", "anthropic", "ollama"]),
+    default=None,
+    help="LLM provider to use (defaults to config)",
+)
+@click.option(
+    "--model",
+    help="Model to use (defaults to provider's default)",
+)
+@click.option(
+    "--stream",
+    is_flag=True,
+    help="Stream the response",
+)
+@click.option(
+    "--show-sources",
+    is_flag=True,
+    help="Show source documents used for the answer",
+)
+@click.option(
+    "--n-results",
+    default=20,
+    help="Number of documents to retrieve",
+)
+def ask(
+    question: str,
+    provider: Optional[str],
+    model: Optional[str],
+    stream: bool,
+    show_sources: bool,
+    n_results: int,
+):
+    """Ask a natural language question about your test data."""
+    async def run_query():
+        # Initialize LLM provider
+        provider_name = provider or settings.llm_provider
+        
+        try:
+            if provider_name == "openai":
+                from src.reportportal_ai.llm.providers.openai_provider import OpenAIProvider
+                llm = OpenAIProvider(
+                    model=model or settings.openai_model,
+                    temperature=settings.llm_temperature,
+                    max_tokens=settings.llm_max_tokens,
+                )
+            elif provider_name == "anthropic":
+                from src.reportportal_ai.llm.providers.anthropic_provider import AnthropicProvider
+                llm = AnthropicProvider(
+                    model=model or settings.anthropic_model,
+                    temperature=settings.llm_temperature,
+                    max_tokens=settings.llm_max_tokens,
+                )
+            elif provider_name == "ollama":
+                from src.reportportal_ai.llm.providers.ollama_provider import OllamaProvider
+                llm = OllamaProvider(
+                    base_url=settings.ollama_base_url,
+                    model=model or settings.ollama_model,
+                    temperature=settings.llm_temperature,
+                    max_tokens=settings.llm_max_tokens,
+                )
+            else:
+                raise click.ClickException(f"Unknown provider: {provider_name}")
+                
+        except Exception as e:
+            console.print(f"[bold red]Failed to initialize LLM provider: {e}[/bold red]")
+            raise click.ClickException(str(e))
+        
+        # Initialize RAG pipeline
+        from src.reportportal_ai.rag.rag_pipeline import RAGPipeline
+        rag = RAGPipeline(llm)
+        
+        console.print(f"[bold blue]Processing query:[/bold blue] {question}\n")
+        
+        # Run query
+        with console.status("Searching and analyzing..."):
+            try:
+                result = await rag.query(
+                    question,
+                    n_results=n_results,
+                    include_raw_results=show_sources,
+                    stream=stream,
+                )
+            except Exception as e:
+                console.print(f"[bold red]Query failed: {e}[/bold red]")
+                raise click.ClickException(str(e))
+        
+        # Display response
+        if stream:
+            console.print("[bold green]Response:[/bold green]\n")
+            async for chunk in result["response"]:
+                console.print(chunk, end="")
+            console.print("\n")
+        else:
+            console.print("[bold green]Response:[/bold green]")
+            console.print(result["response"])
+        
+        # Show analysis info
+        if result.get("analysis"):
+            console.print(f"\n[dim]Intent: {result['analysis']['intent']}[/dim]")
+            console.print(f"[dim]Entity types: {', '.join(result['analysis']['entity_types'])}[/dim]")
+        
+        # Show metrics if calculated
+        if result.get("metrics"):
+            console.print("\n[bold]Metrics:[/bold]")
+            table = Table()
+            table.add_column("Metric", style="cyan")
+            table.add_column("Value", style="green")
+            
+            metrics = result["metrics"]
+            if "failure_rate" in metrics:
+                table.add_row("Failure Rate", f"{metrics['failure_rate']:.1f}%")
+            if "success_rate" in metrics:
+                table.add_row("Success Rate", f"{metrics['success_rate']:.1f}%")
+            
+            console.print(table)
+        
+        # Show sources if requested
+        if show_sources and result.get("search_results"):
+            console.print(f"\n[bold]Sources ({len(result['search_results'])} documents):[/bold]")
+            for i, doc in enumerate(result["search_results"][:5], 1):
+                metadata = doc["metadata"]
+                console.print(f"\n[cyan]{i}. {metadata.get('entity_type', 'Unknown')}[/cyan]")
+                console.print(f"   Distance: {doc['distance']:.4f}")
+                console.print(f"   Preview: {doc['document'][:150]}...")
+        
+        # Show usage if available
+        if result.get("usage"):
+            usage = result["usage"]
+            console.print(
+                f"\n[dim]Tokens used: {usage.get('total_tokens', 'N/A')} "
+                f"(prompt: {usage.get('prompt_tokens', 'N/A')}, "
+                f"completion: {usage.get('completion_tokens', 'N/A')})[/dim]"
+            )
+    
+    # Run async function
+    if provider == "ollama":
+        # For Ollama, we need to handle the async client properly
+        async def run_with_ollama():
+            from src.reportportal_ai.llm.providers.ollama_provider import OllamaProvider
+            llm = OllamaProvider(
+                base_url=settings.ollama_base_url,
+                model=model or settings.ollama_model,
+                temperature=settings.llm_temperature,
+                max_tokens=settings.llm_max_tokens,
+            )
+            async with llm:
+                from src.reportportal_ai.rag.rag_pipeline import RAGPipeline
+                rag = RAGPipeline(llm)
+                
+                console.print(f"[bold blue]Processing query:[/bold blue] {question}\n")
+                
+                with console.status("Searching and analyzing..."):
+                    try:
+                        result = await rag.query(
+                            question,
+                            n_results=n_results,
+                            include_raw_results=show_sources,
+                            stream=stream,
+                        )
+                    except Exception as e:
+                        console.print(f"[bold red]Query failed: {e}[/bold red]")
+                        raise click.ClickException(str(e))
+                
+                # Display response (same as above)
+                if stream:
+                    console.print("[bold green]Response:[/bold green]\n")
+                    async for chunk in result["response"]:
+                        console.print(chunk, end="")
+                    console.print("\n")
+                else:
+                    console.print("[bold green]Response:[/bold green]")
+                    console.print(result["response"])
+                
+                # Show additional info (same as above)
+                if result.get("analysis"):
+                    console.print(f"\n[dim]Intent: {result['analysis']['intent']}[/dim]")
+                    console.print(f"[dim]Entity types: {', '.join(result['analysis']['entity_types'])}[/dim]")
+        
+        asyncio.run(run_with_ollama())
+    else:
+        asyncio.run(run_query())
+
+
+@query.command()
+def examples():
+    """Show example queries you can ask."""
+    examples = [
+        ("Find failed tests", "Show me all failed tests from the last 24 hours"),
+        ("Root cause analysis", "Why did the login tests fail yesterday?"),
+        ("Trends", "What's the test failure trend over the last week?"),
+        ("Specific errors", "Find tests that failed with timeout errors"),
+        ("Metrics", "What's the success rate for API tests this month?"),
+        ("Comparisons", "Compare test results between this week and last week"),
+        ("Test history", "Show me the history of the checkout flow tests"),
+        ("Error patterns", "What are the most common error messages in failed tests?"),
+        ("Performance", "Which tests are taking the longest to run?"),
+        ("Flaky tests", "Identify tests that pass and fail intermittently"),
+    ]
+    
+    console.print("[bold]Example Queries:[/bold]\n")
+    
+    table = Table()
+    table.add_column("Category", style="cyan")
+    table.add_column("Example Query", style="green")
+    
+    for category, example in examples:
+        table.add_row(category, example)
+    
+    console.print(table)
+    
+    console.print("\n[dim]Tips:[/dim]")
+    console.print("• Be specific about time periods (e.g., 'last 7 days', 'yesterday')")
+    console.print("• Mention test names or error messages for targeted results")
+    console.print("• Ask for metrics like success rate, failure rate, or counts")
+    console.print("• Use --show-sources to see which documents were used")
+
+
+@query.command()
+@click.option(
+    "--openai-key",
+    help="OpenAI API key",
+)
+@click.option(
+    "--anthropic-key", 
+    help="Anthropic API key",
+)
+@click.option(
+    "--ollama-url",
+    help="Ollama server URL",
+)
+def configure(openai_key: Optional[str], anthropic_key: Optional[str], ollama_url: Optional[str]):
+    """Configure LLM providers."""
+    console.print("[bold]LLM Configuration[/bold]\n")
+    
+    updates = []
+    
+    if openai_key:
+        updates.append(f"OPENAI_API_KEY={openai_key}")
+        console.print("✓ OpenAI API key set")
+    
+    if anthropic_key:
+        updates.append(f"ANTHROPIC_API_KEY={anthropic_key}")
+        console.print("✓ Anthropic API key set")
+    
+    if ollama_url:
+        updates.append(f"OLLAMA_BASE_URL={ollama_url}")
+        console.print(f"✓ Ollama URL set to {ollama_url}")
+    
+    if updates:
+        # Update .env file
+        env_path = Path(".env")
+        
+        if env_path.exists():
+            with open(env_path, "a") as f:
+                f.write("\n# LLM Configuration\n")
+                for update in updates:
+                    f.write(f"{update}\n")
+        else:
+            with open(env_path, "w") as f:
+                f.write("# LLM Configuration\n")
+                for update in updates:
+                    f.write(f"{update}\n")
+        
+        console.print("\n[bold green]Configuration saved to .env file[/bold green]")
+    else:
+        # Interactive configuration
+        console.print("Choose your LLM provider:\n")
+        console.print("1. OpenAI (GPT-4)")
+        console.print("2. Anthropic (Claude)")
+        console.print("3. Ollama (Local LLMs)")
+        
+        choice = click.prompt("Enter choice (1-3)", type=int)
+        
+        if choice == 1:
+            key = click.prompt("Enter OpenAI API key", hide_input=True)
+            with open(".env", "a") as f:
+                f.write(f"\nOPENAI_API_KEY={key}\n")
+                f.write("LLM_PROVIDER=openai\n")
+            console.print("[bold green]OpenAI configured![/bold green]")
+            
+        elif choice == 2:
+            key = click.prompt("Enter Anthropic API key", hide_input=True)
+            with open(".env", "a") as f:
+                f.write(f"\nANTHROPIC_API_KEY={key}\n")
+                f.write("LLM_PROVIDER=anthropic\n")
+            console.print("[bold green]Anthropic configured![/bold green]")
+            
+        elif choice == 3:
+            url = click.prompt("Enter Ollama URL", default="http://localhost:11434")
+            model = click.prompt("Enter model name", default="llama2")
+            with open(".env", "a") as f:
+                f.write(f"\nOLLAMA_BASE_URL={url}\n")
+                f.write(f"OLLAMA_MODEL={model}\n")
+                f.write("LLM_PROVIDER=ollama\n")
+            console.print("[bold green]Ollama configured![/bold green]")
+            console.print("\nMake sure Ollama is running: ollama serve")
 
 if __name__ == "__main__":
     cli()

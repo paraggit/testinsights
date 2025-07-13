@@ -76,14 +76,85 @@ class SyncOrchestrator:
         if sync_type == "full":
             strategy = FullSyncStrategy(self.api_client, self.storage_client)
         else:
-            strategy = IncrementalSyncStrategy(self.api_client, self.storage_client)
+            strategy = IncrementalSyncStrategy()
+        
+        # Initialize stats
+        start_time = datetime.utcnow()
+        entity_stats = {}
+        errors = []
         
         # Perform sync
         async with self.api_client:
-            stats = await strategy.sync(
-                project_names=project_names,
-                entity_types=entity_types,
-            )
+            # Get projects to sync
+            if project_names is None:
+                projects = await self.api_client.get_projects()
+                project_names = [p.get("projectName") for p in projects]
+            
+            # Sync each entity type
+            for entity_type in entity_types:
+                try:
+                    if entity_type == "project":
+                        count = await self.sync_projects()
+                        entity_stats["project"] = count
+                    
+                    elif entity_type == "user":
+                        count = await self.sync_users()
+                        entity_stats["user"] = count
+                    
+                    elif entity_type == "launch":
+                        total_count = 0
+                        for project_name in project_names:
+                            # For incremental sync, only get recent launches
+                            filters = None
+                            if isinstance(strategy, IncrementalSyncStrategy):
+                                cutoff_timestamp = int(strategy.cutoff_date.timestamp() * 1000)
+                                filters = {"filter.gte.startTime": cutoff_timestamp}
+                            
+                            count = await self.sync_launches(project_name, filters)
+                            total_count += count
+                        entity_stats["launch"] = total_count
+                    
+                    elif entity_type == "test_item":
+                        # Test items are synced as part of launches
+                        pass
+                    
+                    elif entity_type == "log":
+                        # Logs are synced as part of test items
+                        pass
+                    
+                    elif entity_type == "filter":
+                        total_count = 0
+                        for project_name in project_names:
+                            count = await self.sync_filters(project_name)
+                            total_count += count
+                        entity_stats["filter"] = total_count
+                    
+                    elif entity_type == "dashboard":
+                        total_count = 0
+                        for project_name in project_names:
+                            count = await self.sync_dashboards(project_name)
+                            total_count += count
+                        entity_stats["dashboard"] = total_count
+                    
+                except Exception as e:
+                    logger.error(f"Failed to sync {entity_type}", error=str(e))
+                    errors.append(f"{entity_type}: {str(e)}")
+        
+        # Calculate duration
+        end_time = datetime.utcnow()
+        duration = (end_time - start_time).total_seconds()
+        
+        # Update sync metadata
+        self._sync_metadata = {
+            "last_sync": end_time.isoformat(),
+            "sync_type": sync_type,
+        }
+        
+        stats = {
+            "entity_stats": entity_stats,
+            "duration_seconds": duration,
+            "errors": errors,
+        }
         
         logger.info("Sync completed", stats=stats)
         return stats
@@ -92,28 +163,27 @@ class SyncOrchestrator:
         """Sync all projects."""
         logger.info("Syncing projects")
         
-        async with self.api_client:
-            projects = await self.api_client.get_projects()
-            
-            # Transform project data
-            transformed_projects = []
-            for project in projects:
-                transformed_projects.append({
-                    "id": project.get("id"),
-                    "projectName": project.get("projectName"),
-                    "organization": project.get("organization"),
-                    "creationDate": project.get("creationDate"),
-                    "entryType": project.get("entryType"),
-                    "usersQuantity": project.get("usersQuantity", 0),
-                    "launchesQuantity": project.get("launchesQuantity", 0),
-                })
-            
-            # Store in ChromaDB
-            count = await self.storage_client.upsert_documents(
-                "project",
-                transformed_projects,
-            )
-            
+        projects = await self.api_client.get_projects()
+        
+        # Transform project data
+        transformed_projects = []
+        for project in projects:
+            transformed_projects.append({
+                "id": project.get("id"),
+                "projectName": project.get("projectName"),
+                "organization": project.get("organization"),
+                "creationDate": project.get("creationDate"),
+                "entryType": project.get("entryType"),
+                "usersQuantity": project.get("usersQuantity", 0),
+                "launchesQuantity": project.get("launchesQuantity", 0),
+            })
+        
+        # Store in ChromaDB
+        count = await self.storage_client.upsert_documents(
+            "project",
+            transformed_projects,
+        )
+        
         return count
     
     async def sync_users(self) -> int:
@@ -123,26 +193,25 @@ class SyncOrchestrator:
         total_synced = 0
         page = 0
         
-        async with self.api_client:
-            with tqdm(desc="Syncing users") as pbar:
-                while True:
-                    response = await self.api_client.get_users(
-                        page=page,
-                        size=settings.sync_batch_size,
+        with tqdm(desc="Syncing users") as pbar:
+            while True:
+                response = await self.api_client.get_users(
+                    page=page,
+                    size=settings.sync_batch_size,
+                )
+                
+                if response.items:
+                    count = await self.storage_client.upsert_documents(
+                        "user",
+                        response.items,
                     )
-                    
-                    if response.items:
-                        count = await self.storage_client.upsert_documents(
-                            "user",
-                            response.items,
-                        )
-                        total_synced += count
-                        pbar.update(count)
-                    
-                    if not response.has_next:
-                        break
-                    
-                    page += 1
+                    total_synced += count
+                    pbar.update(count)
+                
+                if not response.has_next:
+                    break
+                
+                page += 1
         
         return total_synced
     
@@ -157,37 +226,36 @@ class SyncOrchestrator:
         total_synced = 0
         page = 0
         
-        async with self.api_client:
-            with tqdm(desc=f"Syncing launches for {project_name}") as pbar:
-                while True:
-                    response = await self.api_client.get_launches(
-                        project_name,
-                        page=page,
-                        size=settings.sync_batch_size,
-                        filters=filters,
+        with tqdm(desc=f"Syncing launches for {project_name}") as pbar:
+            while True:
+                response = await self.api_client.get_launches(
+                    project_name,
+                    page=page,
+                    size=settings.sync_batch_size,
+                    filters=filters,
+                )
+                
+                if response.items:
+                    # Add project context to metadata
+                    count = await self.storage_client.upsert_documents(
+                        "launch",
+                        response.items,
+                        additional_metadata={"project_name": project_name},
                     )
+                    total_synced += count
+                    pbar.update(count)
                     
-                    if response.items:
-                        # Add project context to metadata
-                        count = await self.storage_client.upsert_documents(
-                            "launch",
-                            response.items,
-                            additional_metadata={"project_name": project_name},
+                    # Sync test items for each launch
+                    for launch in response.items:
+                        await self.sync_test_items(
+                            project_name,
+                            launch["id"],
                         )
-                        total_synced += count
-                        pbar.update(count)
-                        
-                        # Sync test items for each launch
-                        for launch in response.items:
-                            await self.sync_test_items(
-                                project_name,
-                                launch["id"],
-                            )
-                    
-                    if not response.has_next:
-                        break
-                    
-                    page += 1
+                
+                if not response.has_next:
+                    break
+                
+                page += 1
         
         return total_synced
     
@@ -285,26 +353,25 @@ class SyncOrchestrator:
         total_synced = 0
         page = 0
         
-        async with self.api_client:
-            while True:
-                response = await self.api_client.get_filters(
-                    project_name,
-                    page=page,
-                    size=settings.sync_batch_size,
+        while True:
+            response = await self.api_client.get_filters(
+                project_name,
+                page=page,
+                size=settings.sync_batch_size,
+            )
+            
+            if response.items:
+                count = await self.storage_client.upsert_documents(
+                    "filter",
+                    response.items,
+                    additional_metadata={"project_name": project_name},
                 )
-                
-                if response.items:
-                    count = await self.storage_client.upsert_documents(
-                        "filter",
-                        response.items,
-                        additional_metadata={"project_name": project_name},
-                    )
-                    total_synced += count
-                
-                if not response.has_next:
-                    break
-                
-                page += 1
+                total_synced += count
+            
+            if not response.has_next:
+                break
+            
+            page += 1
         
         return total_synced
     
@@ -315,52 +382,51 @@ class SyncOrchestrator:
         total_synced = 0
         page = 0
         
-        async with self.api_client:
-            while True:
-                response = await self.api_client.get_dashboards(
-                    project_name,
-                    page=page,
-                    size=settings.sync_batch_size,
-                )
-                
-                if response.items:
-                    # Enrich dashboard data with widget details
-                    enriched_dashboards = []
-                    for dashboard in response.items:
-                        dashboard_data = dashboard.copy()
-                        
-                        # Get widget details
-                        if "widgets" in dashboard_data:
-                            widget_details = []
-                            for widget in dashboard_data["widgets"]:
-                                try:
-                                    widget_data = await self.api_client.get_widgets(
-                                        project_name,
-                                        widget["widgetId"],
-                                    )
-                                    widget_details.append(widget_data)
-                                except Exception as e:
-                                    logger.warning(
-                                        "Failed to get widget",
-                                        widget_id=widget["widgetId"],
-                                        error=str(e),
-                                    )
-                            
-                            dashboard_data["widget_details"] = widget_details
-                        
-                        enriched_dashboards.append(dashboard_data)
+        while True:
+            response = await self.api_client.get_dashboards(
+                project_name,
+                page=page,
+                size=settings.sync_batch_size,
+            )
+            
+            if response.items:
+                # Enrich dashboard data with widget details
+                enriched_dashboards = []
+                for dashboard in response.items:
+                    dashboard_data = dashboard.copy()
                     
-                    count = await self.storage_client.upsert_documents(
-                        "dashboard",
-                        enriched_dashboards,
-                        additional_metadata={"project_name": project_name},
-                    )
-                    total_synced += count
+                    # Get widget details
+                    if "widgets" in dashboard_data:
+                        widget_details = []
+                        for widget in dashboard_data["widgets"]:
+                            try:
+                                widget_data = await self.api_client.get_widgets(
+                                    project_name,
+                                    widget["widgetId"],
+                                )
+                                widget_details.append(widget_data)
+                            except Exception as e:
+                                logger.warning(
+                                    "Failed to get widget",
+                                    widget_id=widget["widgetId"],
+                                    error=str(e),
+                                )
+                        
+                        dashboard_data["widget_details"] = widget_details
+                    
+                    enriched_dashboards.append(dashboard_data)
                 
-                if not response.has_next:
-                    break
-                
-                page += 1
+                count = await self.storage_client.upsert_documents(
+                    "dashboard",
+                    enriched_dashboards,
+                    additional_metadata={"project_name": project_name},
+                )
+                total_synced += count
+            
+            if not response.has_next:
+                break
+            
+            page += 1
         
         return total_synced
     
