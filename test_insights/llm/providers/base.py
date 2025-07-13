@@ -1,64 +1,63 @@
-# src/test_insights/llm/providers/base.py
 """Base class for LLM providers."""
 
 from abc import ABC, abstractmethod
-from typing import List, Dict, Any, Optional, AsyncIterator
-from dataclasses import dataclass
 
 
-@dataclass
 class Message:
     """Represents a message in a conversation."""
-    role: str  # "system", "user", "assistant"
-    content: str
+
+    def __init__(self, role, content):
+        self.role = role  # "system", "user", "assistant"
+        self.content = content
 
 
-@dataclass
 class LLMResponse:
     """Response from an LLM."""
-    content: str
-    model: str
-    usage: Optional[Dict[str, int]] = None
-    metadata: Optional[Dict[str, Any]] = None
+
+    def __init__(self, content, model, usage=None, metadata=None):
+        self.content = content
+        self.model = model
+        self.usage = usage
+        self.metadata = metadata
 
 
 class BaseLLMProvider(ABC):
     """Base class for LLM providers."""
-    
-    def __init__(self, model: str, temperature: float = 0.7, max_tokens: int = 2000):
+
+    def __init__(self, model, temperature=0.7, max_tokens=2000):
         self.model = model
         self.temperature = temperature
         self.max_tokens = max_tokens
-    
+
     @abstractmethod
     async def generate(
         self,
-        messages: List[Message],
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-        stream: bool = False,
-    ) -> LLMResponse:
+        messages,
+        temperature=None,
+        max_tokens=None,
+        stream=False,
+    ):
         """Generate a response from the LLM."""
         pass
-    
+
     @abstractmethod
     async def generate_stream(
         self,
-        messages: List[Message],
-        temperature: Optional[float] = None,
-        max_tokens: Optional[int] = None,
-    ) -> AsyncIterator[str]:
+        messages,
+        temperature=None,
+        max_tokens=None,
+    ):
         """Generate a streaming response from the LLM."""
         pass
-    
-    def format_context(self, context_documents: List[Dict[str, Any]]) -> str:
+
+    def format_context(self, context_documents):
         """Format context documents for inclusion in prompts."""
         formatted_parts = []
-        
+
         for i, doc in enumerate(context_documents, 1):
             metadata = doc.get("metadata", {})
             entity_type = metadata.get("entity_type", "unknown")
-            
+
             # Format based on entity type
             if entity_type == "launch":
                 formatted_parts.append(
@@ -84,8 +83,7 @@ class BaseLLMProvider(ABC):
                 )
             else:
                 formatted_parts.append(
-                    f"[{entity_type.title()} #{i}]\n"
-                    f"Content: {doc.get('document', '')}\n"
+                    f"[{entity_type.title()} #{i}]\n" f"Content: {doc.get('document', '')}\n"
                 )
-        
+
         return "\n---\n".join(formatted_parts)

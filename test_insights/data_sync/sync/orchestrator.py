@@ -1,7 +1,6 @@
 """Orchestrator for data synchronization between ReportPortal and ChromaDB."""
 
 import asyncio
-from typing import Dict, List, Optional, Set, Any
 from datetime import datetime, timedelta
 from tqdm.asyncio import tqdm
 import structlog
@@ -20,19 +19,19 @@ class SyncOrchestrator:
     
     def __init__(
         self,
-        api_client: Optional[ReportPortalAPIClient] = None,
-        storage_client: Optional[ChromaDBClient] = None,
+        api_client = None,
+        storage_client = None,
     ):
         self.api_client = api_client
         self.storage_client = storage_client or ChromaDBClient()
-        self._sync_metadata: Dict[str, Any] = {}
+        self._sync_metadata = {}
     
     async def sync(
         self,
-        sync_type: str = "incremental",
-        project_names: Optional[List[str]] = None,
-        entity_types: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
+        sync_type = "incremental",
+        project_names = None,
+        entity_types = None,
+    ):
         """
         Perform data synchronization.
         
@@ -159,7 +158,7 @@ class SyncOrchestrator:
         logger.info("Sync completed", stats=stats)
         return stats
     
-    async def sync_projects(self) -> int:
+    async def sync_projects(self):
         """Sync all projects."""
         logger.info("Syncing projects")
         
@@ -186,7 +185,7 @@ class SyncOrchestrator:
         
         return count
     
-    async def sync_users(self) -> int:
+    async def sync_users(self):
         """Sync all users."""
         logger.info("Syncing users")
         
@@ -217,9 +216,9 @@ class SyncOrchestrator:
     
     async def sync_launches(
         self,
-        project_name: str,
-        filters: Optional[Dict[str, Any]] = None,
-    ) -> int:
+        project_name,
+        filters = None,
+    ):
         """Sync launches for a project."""
         logger.info("Syncing launches", project=project_name)
         
@@ -261,9 +260,9 @@ class SyncOrchestrator:
     
     async def sync_test_items(
         self,
-        project_name: str,
-        launch_id: int,
-    ) -> int:
+        project_name,
+        launch_id,
+    ):
         """Sync test items for a launch."""
         total_synced = 0
         page = 0
@@ -305,10 +304,10 @@ class SyncOrchestrator:
     
     async def sync_logs(
         self,
-        project_name: str,
-        item_id: int,
-        max_logs: int = 100,
-    ) -> int:
+        project_name,
+        item_id,
+        max_logs = 100,
+    ):
         """Sync logs for a test item (limited to avoid overwhelming storage)."""
         total_synced = 0
         page = 0
@@ -346,7 +345,7 @@ class SyncOrchestrator:
         
         return total_synced
     
-    async def sync_filters(self, project_name: str) -> int:
+    async def sync_filters(self, project_name):
         """Sync filters for a project."""
         logger.info("Syncing filters", project=project_name)
         
@@ -375,7 +374,7 @@ class SyncOrchestrator:
         
         return total_synced
     
-    async def sync_dashboards(self, project_name: str) -> int:
+    async def sync_dashboards(self, project_name):
         """Sync dashboards and their widgets for a project."""
         logger.info("Syncing dashboards", project=project_name)
         
@@ -430,7 +429,7 @@ class SyncOrchestrator:
         
         return total_synced
     
-    async def get_sync_status(self) -> Dict[str, Any]:
+    async def get_sync_status(self):
         """Get current sync status and statistics."""
         stats = await self.storage_client.get_statistics()
         
@@ -440,7 +439,7 @@ class SyncOrchestrator:
             "sync_type": self._sync_metadata.get("sync_type"),
         }
     
-    async def cleanup_old_data(self, days: int = 90) -> Dict[str, int]:
+    async def cleanup_old_data(self, days = 90):
         """Clean up data older than specified days."""
         logger.info("Cleaning up old data", days=days)
         
