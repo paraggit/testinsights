@@ -2,16 +2,18 @@
 
 import asyncio
 import json
+from pathlib import Path
+
 import click
 import structlog
 from rich.console import Console
-from rich.table import Table
 from rich.progress import Progress, SpinnerColumn, TextColumn
+from rich.table import Table
+
 from test_insights.config.settings import settings
-from test_insights.data_sync.sync.orchestrator import SyncOrchestrator
-from test_insights.data_sync.storage.chromadb_client import ChromaDBClient
 from test_insights.core.logging import setup_logging
-from pathlib import Path
+from test_insights.data_sync.storage.chromadb_client import ChromaDBClient
+from test_insights.data_sync.sync.orchestrator import SyncOrchestrator
 
 # Setup console for rich output
 console = Console()

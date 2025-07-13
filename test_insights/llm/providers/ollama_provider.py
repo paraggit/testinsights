@@ -1,11 +1,12 @@
 """Ollama local LLM provider implementation."""
 
 import json
+
 import httpx
 import structlog
 
-from test_insights.llm.providers.base import BaseLLMProvider, Message, LLMResponse
 from test_insights.core.exceptions import ConfigurationError
+from test_insights.llm.providers.base import BaseLLMProvider, LLMResponse
 
 logger = structlog.get_logger(__name__)
 

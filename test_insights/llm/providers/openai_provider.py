@@ -1,12 +1,13 @@
 """OpenAI LLM provider implementation."""
 
 import os
-import openai
-from openai import AsyncOpenAI
-import structlog
 
-from test_insights.llm.providers.base import BaseLLMProvider, Message, LLMResponse
+# import openai
+import structlog
+from openai import AsyncOpenAI
+
 from test_insights.core.exceptions import ConfigurationError
+from test_insights.llm.providers.base import BaseLLMProvider, LLMResponse
 
 logger = structlog.get_logger(__name__)
 

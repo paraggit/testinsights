@@ -2,11 +2,12 @@
 
 import asyncio
 import os
+
 from dotenv import load_dotenv
 
-from test_insights.data_sync.sync.orchestrator import SyncOrchestrator
-from test_insights.data_sync.storage.chromadb_client import ChromaDBClient
 from test_insights.core.logging import setup_logging
+from test_insights.data_sync.storage.chromadb_client import ChromaDBClient
+from test_insights.data_sync.sync.orchestrator import SyncOrchestrator
 
 # Load environment variables
 load_dotenv()
@@ -44,7 +45,7 @@ async def example_incremental_sync():
     # Sync only recent changes (last 24 hours by default)
     stats = await orchestrator.sync(sync_type="incremental", project_names=["demo-project"])
 
-    print(f"Incremental sync completed")
+    print("Incremental sync completed")
     print(f"Updated entities: {stats['entity_stats']}")
 
 

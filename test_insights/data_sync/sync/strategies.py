@@ -2,6 +2,7 @@
 
 from abc import ABC, abstractmethod
 from datetime import datetime, timedelta
+
 import structlog
 
 logger = structlog.get_logger(__name__)

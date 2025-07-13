@@ -1,13 +1,13 @@
 """ChromaDB client for vector storage."""
 
+import hashlib
 import json
 from datetime import datetime
-import hashlib
 
 import chromadb
+import structlog
 from chromadb.config import Settings as ChromaSettings
 from chromadb.utils import embedding_functions
-import structlog
 
 from test_insights.config.settings import settings
 from test_insights.core.exceptions import StorageError

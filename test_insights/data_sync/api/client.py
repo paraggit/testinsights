@@ -1,16 +1,10 @@
 """ReportPortal API client for data fetching."""
 
 import asyncio
-from urllib.parse import urljoin
 
 import httpx
-from tenacity import (
-    retry,
-    stop_after_attempt,
-    wait_exponential,
-    retry_if_exception_type,
-)
 import structlog
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from test_insights.config.settings import settings
 from test_insights.core.exceptions import APIError, AuthenticationError, RateLimitError

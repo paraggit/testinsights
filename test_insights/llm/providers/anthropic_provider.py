@@ -1,12 +1,14 @@
 """Anthropic Claude LLM provider implementation."""
 
 import os
-import anthropic
-from anthropic import AsyncAnthropic
+
 import structlog
 
-from test_insights.llm.providers.base import BaseLLMProvider
+# import anthropic
+from anthropic import AsyncAnthropic
+
 from test_insights.core.exceptions import ConfigurationError
+from test_insights.llm.providers.base import BaseLLMProvider
 
 logger = structlog.get_logger(__name__)
 

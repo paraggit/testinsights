@@ -2,13 +2,15 @@
 
 import asyncio
 import os
+
 from dotenv import load_dotenv
 
-from test_insights.llm.providers.openai_provider import OpenAIProvider
-from test_insights.llm.providers.anthropic_provider import AnthropicProvider
-from test_insights.llm.providers.ollama_provider import OllamaProvider
-from test_insights.rag.rag_pipeline import RAGPipeline
 from test_insights.core.logging import setup_logging
+
+# from test_insights.llm.providers.anthropic_provider import AnthropicProvider
+from test_insights.llm.providers.ollama_provider import OllamaProvider
+from test_insights.llm.providers.openai_provider import OpenAIProvider
+from test_insights.rag.rag_pipeline import RAGPipeline
 
 # Load environment variables
 load_dotenv()
@@ -140,7 +142,10 @@ async def example_with_feedback():
     print(f"Initial Question: {question}")
     print(f"Initial Answer: {result['response']}")
 
-    feedback = "I need more specific information about the error messages and which test suites are affected"
+    feedback = (
+        "I need more specific information about the error messages "
+        "and which test suites are affected"
+    )
 
     refined_result = await rag.query_with_feedback(
         query=question, previous_response=result["response"], feedback=feedback

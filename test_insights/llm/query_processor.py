@@ -2,9 +2,10 @@
 
 import re
 from datetime import datetime, timedelta
+
 import structlog
 
-from test_insights.llm.providers.base import Message
+# from test_insights.llm.providers.base import Message
 
 logger = structlog.get_logger(__name__)
 
@@ -247,8 +248,9 @@ class QueryProcessor:
 
     def build_system_prompt(self, analysis):
         """Build a system prompt based on query analysis."""
-        base_prompt = """You are an AI assistant specialized in analyzing ReportPortal test execution data. 
-You help users understand test results, identify issues, and provide insights about test failures and trends.
+        base_prompt = """You are an AI assistant specialized in analyzing ReportPortal test
+        execution data. You help users understand test results, identify issues, and provide
+        insights about test failures and trends.
 
 When answering questions:
 1. Be specific and reference actual data from the provided context

@@ -1,10 +1,11 @@
 """Retrieval Augmented Generation pipeline for ReportPortal queries."""
 
 import json
+
 import structlog
 
 from test_insights.data_sync.storage.chromadb_client import ChromaDBClient
-from test_insights.llm.providers.base import BaseLLMProvider, Message
+from test_insights.llm.providers.base import Message
 from test_insights.llm.query_processor import QueryProcessor
 
 logger = structlog.get_logger(__name__)
@@ -103,7 +104,8 @@ class RAGPipeline:
         if metrics:
             context += f"\n\n---\n\nCalculated Metrics:\n{json.dumps(metrics, indent=2)}"
 
-        user_message = f"""Based on the following ReportPortal data, please answer this question: {query}
+        user_message = f"""Based on the following ReportPortal data,
+                            please answer this question: {query}
 
 Context:
 {context}
@@ -185,7 +187,10 @@ Please provide a clear and helpful response based on the data provided."""
             Message(role="assistant", content=previous_response),
             Message(
                 role="user",
-                content=f"This response was incomplete. {feedback} Please provide an improved answer based on the available data.",
+                content=(
+                    f"This response was incomplete. {feedback} Please provide an improved answer"
+                    "based on the available data."
+                ),
             ),
         ]
 
