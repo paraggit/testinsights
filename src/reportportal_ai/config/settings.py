@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     anthropic_model: str = "claude-3-opus-20240229"
     
     ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "llama3.3:latest"
+    ollama_model: str = "llama2"
     
     # RAG settings
     rag_n_results: int = 20  # Number of documents to retrieve

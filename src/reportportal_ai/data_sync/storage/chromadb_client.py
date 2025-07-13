@@ -265,16 +265,36 @@ class ChromaDBClient:
     ) -> List[Dict[str, Any]]:
         """Query documents from ChromaDB."""
         try:
-            # Build where clause
-            where_clause = where or {}
+            # Build where clause with proper $and operator for multiple conditions
+            conditions = []
+            
+            # Add entity type filter if specified
             if entity_types:
-                where_clause["entity_type"] = {"$in": entity_types}
+                conditions.append({"entity_type": {"$in": entity_types}})
+            
+            # Add any additional where conditions
+            if where:
+                # If where already has $and, extend it
+                if "$and" in where:
+                    conditions.extend(where["$and"])
+                else:
+                    # Convert each key-value pair to a condition
+                    for key, value in where.items():
+                        conditions.append({key: value})
+            
+            # Build final where clause
+            if len(conditions) == 0:
+                where_clause = None
+            elif len(conditions) == 1:
+                where_clause = conditions[0]
+            else:
+                where_clause = {"$and": conditions}
             
             # Query ChromaDB
             results = self._collection.query(
                 query_texts=[query_text],
                 n_results=n_results,
-                where=where_clause if where_clause else None,
+                where=where_clause,
                 include=["metadatas", "documents", "distances"],
             )
             
