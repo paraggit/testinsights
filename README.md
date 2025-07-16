@@ -155,13 +155,13 @@ poetry run test_insights query configure --ollama-url http://localhost:11434
 poetry run test_insights query ask "What tests failed today?"
 
 # With source documents shown
-poetry run test_insights query ask "Find timeout errors in API tests" --show-sources
+poetry run test_insights query ask "Find timeout errors in tier1 tests" --show-sources
 
 # Streaming response
 poetry run test_insights query ask "Analyze test failure trends this week" --stream
 
 # Use specific provider
-poetry run test_insights query ask "Why are login tests failing?" --provider anthropic
+poetry run test_insights query ask "Why are encryption tests failing?" --provider anthropic
 ```
 
 ## Example Prompts and Use Cases
@@ -176,7 +176,7 @@ poetry run test_insights query ask "Show me all failed tests from the last 24 ho
 poetry run test_insights query ask "Find tests that failed with timeout errors"
 
 # Component-specific failures
-poetry run test_insights query ask "What tests failed in the authentication module?"
+poetry run test_insights query ask "What tests failed in the tier1 marker"
 
 # Pattern analysis
 poetry run test_insights query ask "What are the most common error messages in failed tests?"
@@ -186,23 +186,23 @@ poetry run test_insights query ask "What are the most common error messages in f
 
 ```bash
 # Why questions
-poetry run test_insights query ask "Why did the login tests fail yesterday?"
+poetry run test_insights query ask "Why did the test_add_capacity_ui.py tests fail yesterday?"
 
 # Deep analysis
-poetry run test_insights query ask "What's causing the API test failures? Analyze the error patterns"
+poetry run test_insights query ask "What's causing the functional test failures? Analyze the error patterns"
 
 # Infrastructure issues
-poetry run test_insights query ask "Are there any database connection errors in the failed tests?"
+poetry run test_insights query ask "Are there any network connection errors in the failed tests?"
 
 # Environment-specific issues
-poetry run test_insights query ask "Compare failures between staging and production environments"
+poetry run test_insights query ask "Compare failures between 4.18 and 1.19 version"
 ```
 
 ### 3. Metrics and Statistics
 
 ```bash
 # Success rates
-poetry run test_insights query ask "What's the success rate for API tests this month?"
+poetry run test_insights query ask "What's the success rate for tier1 tests this month?"
 
 # Failure trends
 poetry run test_insights query ask "What's the test failure trend over the last week?"
@@ -221,20 +221,20 @@ poetry run test_insights query ask "Which tests are taking the longest to run?"
 poetry run test_insights query ask "Compare test results between this week and last week"
 
 # Component comparisons
-poetry run test_insights query ask "Compare the failure rates between UI and API tests"
+poetry run test_insights query ask "Compare the failure rates between tier1 and tier2 tests"
 
 # Release comparisons
 poetry run test_insights query ask "How do test results compare between version 1.2 and 1.3?"
 
 # Environment comparisons
-poetry run test_insights query ask "What's the difference in failure rates between dev and prod?"
+poetry run test_insights query ask "What's the difference in failure rates between aws and baremetal environment?"
 ```
 
 ### 5. Test History and Trends
 
 ```bash
 # Historical analysis
-poetry run test_insights query ask "Show me the history of the checkout flow tests"
+poetry run test_insights query ask "Show me the history of the encryption tests"
 
 # Stability analysis
 poetry run test_insights query ask "Identify tests that pass and fail intermittently"
@@ -250,16 +250,16 @@ poetry run test_insights query ask "How has our overall test stability changed o
 
 ```bash
 # Individual test analysis
-poetry run test_insights query ask "Tell me about the 'user_login_test' - when did it last pass?"
+poetry run test_insights query ask "Tell me about the 'test_create_pool_block_pool.py' - when did it last pass?"
 
 # Test suite analysis
-poetry run test_insights query ask "Analyze all tests in the payment processing suite"
+poetry run test_insights query ask "Analyze all tests in the performance suite"
 
 # Error log analysis
 poetry run test_insights query ask "Show me the error logs for failed integration tests"
 
 # Stack trace analysis
-poetry run test_insights query ask "Find all tests with NullPointerException errors"
+poetry run test_insights query ask "Find all tests with assertion CommandFailed errors"
 ```
 
 ## Advanced Usage
