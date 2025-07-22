@@ -9,7 +9,7 @@ packages = [{include = "test_insights"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
-httpx = "^0.24.1"
+httpx = "^0.28.0"
 pydantic = "^2.0.0"
 pydantic-settings = "^2.0.0"
 chromadb = "^0.4.0"
