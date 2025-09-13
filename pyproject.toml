@@ -22,11 +22,16 @@ tqdm = "^4.66.0"
 python-dotenv = "^1.0.0"
 openai = "^1.12.0"
 anthropic = "^0.18.0"
+fastapi = "^0.104.0"
+uvicorn = "^0.24.0"
+numpy = "^1.26.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"
 pytest-asyncio = "^0.21.0"
 pytest-cov = "^4.1.0"
+pytest-mock = "^3.12.0"
+pytest-xdist = "^3.5.0"
 black = "^24.0.0"
 ruff = "^0.1.0"
 mypy = "^1.8.0"
@@ -63,12 +68,52 @@ disallow_untyped_defs = true
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["tests"]
+testpaths = ["test_insights/tests"]
 python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--disable-warnings",
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests", 
+    "api: API endpoint tests",
+    "config: Configuration tests",
+    "slow: Slow-running tests",
+    "requires_llm: Tests that require LLM provider",
+    "requires_storage: Tests that require storage",
+]
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]
 
 [tool.coverage.run]
-source = ["src"]
-omit = ["*/tests/*", "*/examples/*"]
+source = ["test_insights"]
+omit = [
+    "*/tests/*", 
+    "*/examples/*",
+    "*/__pycache__/*",
+    "*/migrations/*",
+    "*/venv/*",
+    "*/.venv/*"
+]
+branch = true
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
+show_missing = true
+precision = 2
 
 [tool.black]
 line-length = 100

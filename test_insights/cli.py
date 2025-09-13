@@ -346,6 +346,66 @@ def init():
 
 
 @cli.group()
+def api():
+    """API server commands."""
+    pass
+
+
+@api.command()
+@click.option("--host", help="Host to bind to (overrides config)")
+@click.option("--port", type=int, help="Port to bind to (overrides config)")
+@click.option("--reload", is_flag=True, help="Enable auto-reload for development")
+@click.option(
+    "--log-level",
+    type=click.Choice(["debug", "info", "warning", "error"]),
+    help="Log level (overrides config)",
+)
+@click.option("--workers", type=int, help="Number of worker processes")
+def start(host, port, reload, log_level, workers):
+    """Start the FastAPI server."""
+    from pathlib import Path
+
+    import uvicorn
+
+    # Check if .env file exists
+    env_file = Path(".env")
+    if not env_file.exists():
+        console.print("[yellow]Warning: .env file not found.[/yellow]")
+        console.print("Run 'test_insights config init' to create a configuration file.")
+
+    # Use CLI args or fall back to settings
+    effective_host = host or settings.api_host
+    effective_port = port or settings.api_port
+    effective_log_level = log_level or settings.effective_log_level.lower()
+    effective_workers = workers or settings.workers
+
+    console.print(
+        f"[bold blue]Starting TestInsight API server on "
+        f"{effective_host}:{effective_port}[/bold blue]"
+    )
+
+    if settings.enable_docs:
+        console.print(f"API documentation: http://localhost:{effective_port}/docs")
+    if settings.enable_redoc:
+        console.print(f"Alternative docs: http://localhost:{effective_port}/redoc")
+
+    try:
+        uvicorn.run(
+            "test_insights.api.app:app",
+            host=effective_host,
+            port=effective_port,
+            reload=reload or settings.is_development(),
+            log_level=effective_log_level,
+            workers=effective_workers if not reload else 1,
+        )
+    except KeyboardInterrupt:
+        console.print("\n[yellow]Shutting down server...[/yellow]")
+    except Exception as e:
+        console.print(f"[bold red]Failed to start server: {e}[/bold red]")
+        raise click.ClickException(str(e))
+
+
+@cli.group()
 def query():
     """Natural language query commands."""
     pass
